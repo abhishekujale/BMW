@@ -8,19 +8,17 @@ import traceback
 
 
 
-#model = load_model('C:\\Users\\devansh raval\\PycharmProjects\\pythonProject\\cnn9.h5')
 
 capture = cv2.VideoCapture(0)
 
 hd = HandDetector(maxHands=1)
 hd2 = HandDetector(maxHands=1)
-# #training data
-# count = len(os.listdir("D://sign2text_dataset_2.0/Binary_imgs//A"))
+
 
 #testing data
-count = len(os.listdir("D://test_data_2.0//Gray_imgs//A"))
+count = len(os.listdir(r"C:\Users\Abhishek\Desktop\Mini-project\Second\New\testdata"))
 
-
+# C:\Users\Abhishek\Desktop\Mini-project\Second\New\testdata
 p_dir = "A"
 c_dir = "a"
 
@@ -28,9 +26,9 @@ offset = 30
 step = 1
 flag=False
 suv=0
-#C:\Users\devansh raval\PycharmProjects\pythonProject
 white=np.ones((400,400),np.uint8)*255
-cv2.imwrite("C:\\Users\\devansh raval\\PycharmProjects\\pythonProject\\white.jpg",white)
+# C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg
+cv2.imwrite("C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg",white)
 
 
 while True:
@@ -87,7 +85,8 @@ while True:
             hand = hands[0]
             x, y, w, h = hand['bbox']
             image = frame[y - offset:y + h + offset, x - offset:x + w + offset]
-            white = cv2.imread("C:\\Users\\devansh raval\\PycharmProjects\\pythonProject\\white.jpg")
+# C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg
+            white = cv2.imread("C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg")
             # img_final=img_final1=img_final2=0
             handz = hd2.findHands(image, draw=False, flipType=True)
             if handz:
@@ -189,11 +188,8 @@ while True:
                 p_dir="A"
                 c_dir="a"
             flag = False
-            # #training data
-            # count = len(os.listdir("D://sign2text_dataset_2.0/Binary_imgs//" + p_dir + "//"))
-
-            # test data
-            count = len(os.listdir("D://test_data_2.0/Gray_imgs//" + p_dir + "//"))
+        
+            count = len(os.listdir("C:\Users\Abhishek\Desktop\Mini-project\Second\New\grayImgs" + p_dir + "//"))
 
         if interrupt & 0xFF == ord('a'):
             if flag:
@@ -208,19 +204,10 @@ while True:
             if suv==50:
                 flag=False
             if step%2==0:
-                # #this is for training data collection
-                # cv2.imwrite("D:\\sign2text_dataset_2.0\\Binary_imgs\\" + p_dir + "\\" + c_dir + str(count) + ".jpg", img_final)
-                # cv2.imwrite("D:\\sign2text_dataset_2.0\\Gray_imgs\\" + p_dir + "\\" + c_dir + str(count) + ".jpg", img_final1)
-                # cv2.imwrite("D:\\sign2text_dataset_2.0\\Gray_imgs_with_drawing\\" + p_dir + "\\" + c_dir + str(count) + ".jpg", img_final2)
-
-                # this is for testing data collection
-                # cv2.imwrite("D:\\test_data_2.0\\Binary_imgs\\" + p_dir + "\\" + c_dir + str(count) + ".jpg",
-                #             img_final)
-                cv2.imwrite("D:\\test_data_2.0\\Gray_imgs\\" + p_dir + "\\" + c_dir + str(count) + ".jpg",
+               
+                cv2.imwrite("C:\Users\Abhishek\Desktop\Mini-project\Second\New\grayImgs" + p_dir + "\\" + c_dir + str(count) + ".jpg",
                             img_final1)
-                cv2.imwrite(
-                    "D:\\test_data_2.0\\Gray_imgs_with_drawing\\" + p_dir + "\\" + c_dir + str(count) + ".jpg",
-                    img_final2)
+               
 
                 count += 1
                 suv += 1
@@ -230,86 +217,3 @@ while True:
 
 capture.release()
 cv2.destroyAllWindows()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# img_final=cv2.resize(img_final,(224,224));
-# img_finalf=np.ones((400,400,3),np.uint8)*255;
-# print("img final shape= ", img_final)
-#  for i in range(400):
-#      for j in range(400):
-#          if(img_final[i][j]==255):
-#              img_finalf[i][j]=[255,255,255]
-#          else:
-#              img_finalf[i][j]=[0,0,0];
-# print("img final f shape= ", img_finalf)
-# image = cv2.medianBlur(test_image, 5)
-# kernel = np.ones((3, 3), np.uint8)
-# kernel1 = np.ones((1, 1), np.uint8)
-# dilate = cv2.dilate(image, kernel, iterations=1)
-# dilate = cv2.erode(dilate, kernel1, iterations=1)
-
-# cv2.imshow("gray",gray)
-# cv2.imshow("blurr",blur)
-# cv2.imshow("adapt threshold",th3)
-# cv2.imshow("roi",test_image)
-
-# white increase
-
-# if flag:
-#     if step % 2 == 0:
-#         cv2.imwrite("D:\\sign_data\\B\\b" + str(count) + ".jpg", img_final)
-#         print(count)
-#         count += 1
-#     step += 1

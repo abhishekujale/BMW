@@ -10,7 +10,7 @@ capture = cv2.VideoCapture(0)
 hd = HandDetector(maxHands=1)
 hd2 = HandDetector(maxHands=1)
 
-count = len(oss.listdir("D:\\sign2text_dataset_3.0\\AtoZ_3.0\\A\\"))
+count = len(oss.listdir("C:\Users\Abhishek\Desktop\Mini-project\Second\New\grayImgs"))
 c_dir = 'A'
 
 offset = 15
@@ -19,7 +19,7 @@ flag=False
 suv=0
 
 white=np.ones((400,400),np.uint8)*255
-cv2.imwrite("C:\\Users\\devansh raval\\PycharmProjects\\pythonProject\\white.jpg",white)
+cv2.imwrite("C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg",white)
 
 
 while True:
@@ -96,7 +96,7 @@ while True:
             if suv==180:
                 flag=False
             if step%3==0:
-                cv2.imwrite("D:\\sign2text_dataset_3.0\\AtoZ_3.1\\" + (c_dir) + "\\" + str(count) + ".jpg",
+                cv2.imwrite("C:\Users\Abhishek\Desktop\Mini-project\Second\New\grayImgs/A" + (c_dir) + "\\" + str(count) + ".jpg",
                             skeleton1)
 
                 count += 1
