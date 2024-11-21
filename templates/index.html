@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language To Text Conversion</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .video-container {
+            width: 480px;
+            height: 640px;
+            margin: 20px;
+        }
+        .processed-container {
+            width: 400px;
+            height: 400px;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4">
+        <h1 class="text-4xl font-bold text-center my-6">Sign Language To Text Conversion</h1>
+        
+        <div class="flex justify-around flex-wrap">
+            <!-- Main video feed -->
+            <video id="video" autoplay></video>
+
+    <p class="error-message" id="error-message"></p>
+
+
+
+            
+            <!-- Processed image -->
+            <div class="processed-container">
+                <img id="processed-image" src="" alt="Processed feed" class="w-full h-full object-cover border-4 border-gray-300 rounded-lg">
+            </div>
+        </div>
+
+        <!-- Current character and sentence display -->
+        <div class="mt-8 space-y-4">
+            <div class="flex items-center space-x-4">
+                <span class="text-2xl font-bold">Character:</span>
+                <span id="current-symbol" class="text-2xl"></span>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <span class="text-2xl font-bold">Sentence:</span>
+                <span id="current-sentence" class="text-2xl"></span>
+            </div>
+            
+            <!-- Suggestions -->
+            <div class="mt-4">
+                <span class="text-2xl font-bold text-red-600">Suggestions:</span>
+                <div class="flex space-x-4 mt-2" id="suggestions">
+                    <!-- Suggestions will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Control buttons -->
+        <div class="flex justify-center space-x-4 mt-8">
+            <button onclick="speakText()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
+                Speak
+            </button>
+            <button onclick="clearText()" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition">
+                Clear
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function updateData() {
+            fetch('/get_current_data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('current-symbol').textContent = data.current_symbol;
+                    document.getElementById('current-sentence').textContent = data.sentence;
+                    
+                    // Update suggestions
+                    const suggestionsDiv = document.getElementById('suggestions');
+                    suggestionsDiv.innerHTML = '';
+                    data.suggestions.forEach(suggestion => {
+                        if (suggestion.trim()) {
+                            const btn = document.createElement('button');
+                            btn.textContent = suggestion;
+                            btn.className = 'bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition';
+                            suggestionsDiv.appendChild(btn);
+                        }
+                    });
+                });
+        }
+        // Try to access the webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                // Get the video element and set the webcam stream
+                const videoElement = document.getElementById('video');
+                videoElement.srcObject = stream;
+            })
+            .catch((err) => {
+                // If there is an error (e.g., permission denied or camera not found)
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = "Error accessing the camera: " + err.message;
+                console.error("Error accessing camera:", err);
+            });
+        function speakText() {
+            fetch('/speak', {
+                method: 'POST'
+            });
+        }
+
+        function clearText() {
+            fetch('/clear', {
+                method: 'POST'
+            })
+            .then(() => updateData());
+        }
+
+        // Update data every second
+        setInterval(updateData, 1000);
+    </script>
+</body>
+</html>

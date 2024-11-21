@@ -1,263 +1,28 @@
-import numpy as np
-import math
+from flask import Flask, render_template, Response, jsonify, request
 import cv2
-import os, sys
-import traceback
-import pyttsx3
+import numpy as np
+import time 
 from keras.models import load_model
 from cvzone.HandTrackingModule import HandDetector
-from string import ascii_uppercase
 import enchant
-ddd=enchant.Dict("en-US")
-hd = HandDetector(maxHands=1)
-hd2 = HandDetector(maxHands=1)
-import tkinter as tk
-from PIL import Image, ImageTk
-offset=29
-os.environ["THEANO_FLAGS"] = "device=cuda, assert_no_cpu_op=True"
-class Application:
+import pyttsx3
+from string import ascii_uppercase
+import os
+import math
+import traceback
+from PIL import Image
+import threading
+
+app = Flask(__name__)
+
+class HandGesturePredictor:
     def __init__(self):
-        self.vs = cv2.VideoCapture(0)
-        self.current_image = None
-        self.model = load_model('cnn8grps_rad1_model.h5')
-        self.speak_engine=pyttsx3.init()
-        self.speak_engine.setProperty("rate",100)
-        voices=self.speak_engine.getProperty("voices")
-        self.speak_engine.setProperty("voice",voices[0].id)
-        self.ct = {}
-        self.ct['blank'] = 0
-        self.blank_flag = 0
-        self.space_flag=False
-        self.next_flag=True
-        self.prev_char=""
-        self.count=-1
-        self.ten_prev_char=[]
-        for i in range(10):
-            self.ten_prev_char.append(" ")
-        for i in ascii_uppercase:
-            self.ct[i] = 0
-        print("Loaded model from disk")
-        self.root = tk.Tk()
-        self.root.title("Sign Language To Text Conversion")
-        self.root.protocol('WM_DELETE_WINDOW', self.destructor)
-        self.root.geometry("1300x700")
-        self.panel = tk.Label(self.root)
-        self.panel.place(x=100, y=3, width=480, height=640)
-        self.panel2 = tk.Label(self.root)  # initialize image panel
-        self.panel2.place(x=700, y=115, width=400, height=400)
-        self.T = tk.Label(self.root)
-        self.T.place(x=60, y=5)
-        self.T.config(text="Sign Language To Text Conversion", font=("Courier", 30, "bold"))
-        self.panel3 = tk.Label(self.root)  # Current Symbol
-        self.panel3.place(x=280, y=585)
-        self.T1 = tk.Label(self.root)
-        self.T1.place(x=10, y=580)
-        self.T1.config(text="Character :", font=("Courier", 30, "bold"))
-        self.panel5 = tk.Label(self.root)  # Sentence
-        self.panel5.place(x=260, y=632)
-        self.T3 = tk.Label(self.root)
-        self.T3.place(x=10, y=632)
-        self.T3.config(text="Sentence :", font=("Courier", 30, "bold"))
-        self.T4 = tk.Label(self.root)
-        self.T4.place(x=10, y=700)
-        self.T4.config(text="Suggestions :", fg="red", font=("Courier", 30, "bold"))
-        self.b1=tk.Button(self.root)
-        self.b1.place(x=390,y=700)
-        self.b2 = tk.Button(self.root)
-        self.b2.place(x=590, y=700)
-        self.b3 = tk.Button(self.root)
-        self.b3.place(x=790, y=700)
-        self.b4 = tk.Button(self.root)
-        self.b4.place(x=990, y=700)
-        self.speak = tk.Button(self.root)
-        self.speak.place(x=1305, y=630)
-        self.speak.config(text="Speak", font=("Courier", 20), wraplength=100, command=self.speak_fun)
-        self.clear = tk.Button(self.root)
-        self.clear.place(x=1205, y=630)
-        self.clear.config(text="Clear", font=("Courier", 20), wraplength=100, command=self.clear_fun)
-        self.str = " "
-        self.ccc=0
-        self.word = " "
-        self.current_symbol = "C"
-        self.photo = "Empty"
-        self.word1=" "
-        self.word2 = " "
-        self.word3 = " "
-        self.word4 = " "
-        self.video_loop()
+        self.model = load_model('./cnn8grps_rad1_model.h5')
+        self.dict_suggestions = enchant.Dict("en-US")
 
-    def video_loop(self):
-        try:
-            ok, frame = self.vs.read()
-            cv2image = cv2.flip(frame, 1)
-            if cv2image.any:
-                hands = hd.findHands(cv2image, draw=False, flipType=True)
-                cv2image_copy=np.array(cv2image)
-                cv2image = cv2.cvtColor(cv2image, cv2.COLOR_BGR2RGB)
-                self.current_image = Image.fromarray(cv2image)
-                imgtk = ImageTk.PhotoImage(image=self.current_image)
-                self.panel.imgtk = imgtk
-                self.panel.config(image=imgtk)
 
-                if hands[0]:
-                    hand = hands[0]
-                    map = hand[0]
-                    x, y, w, h=map['bbox']
-                    image = cv2image_copy[y - offset:y + h + offset, x - offset:x + w + offset]
-
-                    white = cv2.imread("white.jpg")
-                    # img_final=img_final1=img_final2=0
-                    if image.all:
-                        handz = hd2.findHands(image, draw=False, flipType=True)
-                        self.ccc += 1
-                        if handz[0]:
-                            hand = handz[0]
-                            handmap=hand[0]
-                            self.pts = handmap['lmList']
-                            # x1,y1,w1,h1=hand['bbox']
-
-                            os = ((400 - w) // 2) - 15
-                            os1 = ((400 - h) // 2) - 15
-                            for t in range(0, 4, 1):
-                                cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                         (0, 255, 0), 3)
-                            for t in range(5, 8, 1):
-                                cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                         (0, 255, 0), 3)
-                            for t in range(9, 12, 1):
-                                cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                         (0, 255, 0), 3)
-                            for t in range(13, 16, 1):
-                                cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                         (0, 255, 0), 3)
-                            for t in range(17, 20, 1):
-                                cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                         (0, 255, 0), 3)
-                            cv2.line(white, (self.pts[5][0] + os, self.pts[5][1] + os1), (self.pts[9][0] + os, self.pts[9][1] + os1), (0, 255, 0),
-                                     3)
-                            cv2.line(white, (self.pts[9][0] + os, self.pts[9][1] + os1), (self.pts[13][0] + os, self.pts[13][1] + os1), (0, 255, 0),
-                                     3)
-                            cv2.line(white, (self.pts[13][0] + os, self.pts[13][1] + os1), (self.pts[17][0] + os, self.pts[17][1] + os1),
-                                     (0, 255, 0), 3)
-                            cv2.line(white, (self.pts[0][0] + os, self.pts[0][1] + os1), (self.pts[5][0] + os, self.pts[5][1] + os1), (0, 255, 0),
-                                     3)
-                            cv2.line(white, (self.pts[0][0] + os, self.pts[0][1] + os1), (self.pts[17][0] + os, self.pts[17][1] + os1), (0, 255, 0),
-                                     3)
-                            for i in range(21):
-                                cv2.circle(white, (self.pts[i][0] + os, self.pts[i][1] + os1), 2, (0, 0, 255), 1)
-                            res=white
-                            self.predict(res)
-                            self.current_image2 = Image.fromarray(res)
-                            imgtk = ImageTk.PhotoImage(image=self.current_image2)
-                            self.panel2.imgtk = imgtk
-                            self.panel2.config(image=imgtk)
-                            self.panel3.config(text=self.current_symbol, font=("Courier", 30))
-                            self.b1.config(text=self.word1, font=("Courier", 20), wraplength=825, command=self.action1)
-                            self.b2.config(text=self.word2, font=("Courier", 20), wraplength=825,  command=self.action2)
-                            self.b3.config(text=self.word3, font=("Courier", 20), wraplength=825,  command=self.action3)
-                            self.b4.config(text=self.word4, font=("Courier", 20), wraplength=825,  command=self.action4)
-                self.panel5.config(text=self.str, font=("Courier", 30), wraplength=1025)
-        except Exception:
-            print(Exception.__traceback__)
-            hands = hd.findHands(cv2image, draw=False, flipType=True)
-            cv2image_copy=np.array(cv2image)
-            cv2image = cv2.cvtColor(cv2image, cv2.COLOR_BGR2RGB)
-            self.current_image = Image.fromarray(cv2image)
-            imgtk = ImageTk.PhotoImage(image=self.current_image)
-            self.panel.imgtk = imgtk
-            self.panel.config(image=imgtk)
-            if hands:
-                hand = hands[0]
-                x, y, w, h = hand['bbox']
-                image = cv2image_copy[y - offset:y + h + offset, x - offset:x + w + offset]
-                white = cv2.imread(r"C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg")
-                handz = hd2.findHands(image, draw=False, flipType=True)
-                print(" ", self.ccc)
-                self.ccc += 1
-                if handz:
-                    hand = handz[0]
-                    self.pts = hand['lmList']
-                    os = ((400 - w) // 2) - 15
-                    os1 = ((400 - h) // 2) - 15
-                    for t in range(0, 4, 1):
-                        cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                 (0, 255, 0), 3)
-                    for t in range(5, 8, 1):
-                        cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                 (0, 255, 0), 3)
-                    for t in range(9, 12, 1):
-                        cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                 (0, 255, 0), 3)
-                    for t in range(13, 16, 1):
-                        cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                 (0, 255, 0), 3)
-                    for t in range(17, 20, 1):
-                        cv2.line(white, (self.pts[t][0] + os, self.pts[t][1] + os1), (self.pts[t + 1][0] + os, self.pts[t + 1][1] + os1),
-                                 (0, 255, 0), 3)
-                    cv2.line(white, (self.pts[5][0] + os, self.pts[5][1] + os1), (self.pts[9][0] + os, self.pts[9][1] + os1), (0, 255, 0),
-                             3)
-                    cv2.line(white, (self.pts[9][0] + os, self.pts[9][1] + os1), (self.pts[13][0] + os, self.pts[13][1] + os1), (0, 255, 0),
-                             3)
-                    cv2.line(white, (self.pts[13][0] + os, self.pts[13][1] + os1), (self.pts[17][0] + os, self.pts[17][1] + os1),
-                             (0, 255, 0), 3)
-                    cv2.line(white, (self.pts[0][0] + os, self.pts[0][1] + os1), (self.pts[5][0] + os, self.pts[5][1] + os1), (0, 255, 0),
-                             3)
-                    cv2.line(white, (self.pts[0][0] + os, self.pts[0][1] + os1), (self.pts[17][0] + os, self.pts[17][1] + os1), (0, 255, 0),
-                             3)
-                    for i in range(21):
-                        cv2.circle(white, (self.pts[i][0] + os, self.pts[i][1] + os1), 2, (0, 0, 255), 1)
-                    res=white
-                    self.predict(res)
-                    self.current_image2 = Image.fromarray(res)
-                    imgtk = ImageTk.PhotoImage(image=self.current_image2)
-                    self.panel2.imgtk = imgtk
-                    self.panel2.config(image=imgtk)
-                    self.panel3.config(text=self.current_symbol, font=("Courier", 30))
-                    self.b1.config(text=self.word1, font=("Courier", 20), wraplength=825, command=self.action1)
-                    self.b2.config(text=self.word2, font=("Courier", 20), wraplength=825,  command=self.action2)
-                    self.b3.config(text=self.word3, font=("Courier", 20), wraplength=825,  command=self.action3)
-                    self.b4.config(text=self.word4, font=("Courier", 20), wraplength=825,  command=self.action4)
-            self.panel5.config(text=self.str, font=("Courier", 30), wraplength=1025)
-        except Exception:
-            print("==", traceback.format_exc())
-        finally:
-            self.root.after(1, self.video_loop)
-    def distance(self,x,y):
-        return math.sqrt(((x[0] - y[0]) ** 2) + ((x[1] - y[1]) ** 2))
-    def action1(self):
-        idx_space = self.str.rfind(" ")
-        idx_word = self.str.find(self.word, idx_space)
-        last_idx = len(self.str)
-        self.str = self.str[:idx_word]
-        self.str = self.str + self.word1.upper()
-    def action2(self):
-        idx_space = self.str.rfind(" ")
-        idx_word = self.str.find(self.word, idx_space)
-        last_idx = len(self.str)
-        self.str=self.str[:idx_word]
-        self.str=self.str+self.word2.upper()
-    def action3(self):
-        idx_space = self.str.rfind(" ")
-        idx_word = self.str.find(self.word, idx_space)
-        last_idx = len(self.str)
-        self.str = self.str[:idx_word]
-        self.str = self.str + self.word3.upper()
-    def action4(self):
-        idx_space = self.str.rfind(" ")
-        idx_word = self.str.find(self.word, idx_space)
-        last_idx = len(self.str)
-        self.str = self.str[:idx_word]
-        self.str = self.str + self.word4.upper()
-    def speak_fun(self):
-        self.speak_engine.say(self.str)
-        self.speak_engine.runAndWait()
-    def clear_fun(self):
-        self.str=" "
-        self.word1 = " "
-        self.word2 = " "
-        self.word3 = " "
-        self.word4 = " "
-    def predict(self, test_image):
+        
+    def predict_gesture(self, res):
         white=test_image
         white = white.reshape(1, 400, 400, 3)
         prob = np.array(self.model.predict(white)[0], dtype='float32')
@@ -588,6 +353,8 @@ class Application:
 
                 if lenn >= 2:
                     self.word2 = ddd.suggest(word)[1]
+                if lenn >= 2:
+                    self.word2 = ddd.suggest(word)[1]
 
                 if lenn >= 1:
                     self.word1 = ddd.suggest(word)[0]
@@ -596,10 +363,217 @@ class Application:
                 self.word2 = " "
                 self.word3 = " "
                 self.word4 = " "
-    def destructor(self):
-        print(self.ten_prev_char)
-        self.root.destroy()
-        self.vs.release()
-        cv2.destroyAllWindows()
-print("Starting Application...")
-(Application()).root.mainloop()
+        pass
+
+class SignLanguageConverter:
+    def __init__(self):
+        self.vs = cv2.VideoCapture(0)
+        self.speak_engine = pyttsx3.init()
+        self.speak_engine.setProperty("rate", 100)
+        voices = self.speak_engine.getProperty("voices")
+        self.speak_engine.setProperty("voice", voices[0].id)
+        
+        # Initialize predictors and detectors
+        self.predictor = HandGesturePredictor()
+        self.hd = HandDetector(maxHands=1)
+        self.hd2 = HandDetector(maxHands=1)
+        
+        # State variables
+        self.current_image = None
+        self.current_image2 = None
+        self.pts = None
+        self.offset = 29
+        self.ccc = 0
+        
+        # Text and word variables
+        self.current_symbol = "Empty"
+        self.str = " "
+        self.word = " "
+        self.word1 = self.word2 = self.word3 = self.word4 = " "
+        self.ten_prev_char = [" " for _ in range(10)]
+        self.prev_char = ""
+        self.count = -1
+        
+        # Flags
+        self.blank_flag = 0
+        self.space_flag = False
+        self.next_flag = True
+        
+        # Counters
+        self.ct = {char: 0 for char in ascii_uppercase}
+        self.ct['blank'] = 0
+        
+        # Load background
+        self.white = cv2.imread("white.jpg")
+        
+        # Start video thread
+        self.video_thread = threading.Thread(target=self.video_loop, daemon=True)
+        self.video_thread.start()
+        
+        # Lock for thread safety
+        self.lock = threading.Lock()
+
+    def distance(self, x, y):
+        return math.sqrt(((x[0] - y[0]) ** 2) + ((x[1] - y[1]) ** 2))
+    def video_loop(self):
+        consecutive_failures = 0
+        while True:
+            try:
+                frame = self.process_frame()
+                
+                if frame is None:
+                    print("Failed to get frame from video source")
+                    consecutive_failures += 1
+                    if consecutive_failures > 5:
+                        print("Too many failures, trying to reset video source...")
+                        self.vs.release()  # Reset the capture
+                        self.vs = cv2.VideoCapture(0)  # Re-initialize video capture
+                        consecutive_failures = 0
+                    continue
+                else:
+                    consecutive_failures = 0  # Reset on success
+
+                # Your other code continues here...
+
+            except Exception as e:
+                print(f"Error in video loop: {str(e)}")
+                traceback.print_exc()
+                time.sleep(1)  # Small delay on error to avoid spamming
+
+    def process_frame(self):
+        ok, frame = self.vs.read()
+        if not ok:
+            print("Failed to read frame.")
+            return None
+
+        cv2image = cv2.flip(frame, 1)
+        hands = self.hd.findHands(cv2image, draw=False, flipType=True)
+        
+        if not hands or len(hands[0]) == 0:
+            print("No hands detected in this frame.")
+            return cv2image  # return original frame if no hands are detected
+
+        # Continue with processing
+        cv2image_copy = np.array(cv2image)
+
+        processed_image = None
+        
+        try:
+            hand = hands[0]
+            map = hand[0]
+            x, y, w, h = map['bbox']
+            
+            # Extract hand region
+            image = cv2image_copy[y - self.offset:y + h + self.offset, 
+                                x - self.offset:x + w + self.offset]
+            
+            handz = self.hd2.findHands(image, draw=False, flipType=True)
+            
+            if not handz or len(handz[0]) == 0:
+                print("No hands detected in hand region.")
+                return cv2image  # return original frame if no hands are detected in hand region
+
+            hand = handz[0]
+            handmap = hand[0]
+            self.pts = handmap['lmList']
+            
+            # Draw skeleton and landmarks as per your code...
+            
+            # Process the gesture
+            with self.lock:
+                self.predict(white)
+            processed_image = white
+            
+            return processed_image if processed_image is not None else cv2image
+        
+        except Exception as e:
+            print(f"Error in process_frame: {str(e)}")
+            traceback.print_exc()
+            return cv2image  # Return original frame if error occurs
+
+
+    def predict(self, image):
+        """Predict the gesture and update suggestions"""
+        result = self.predictor.predict_gesture(image)
+        if result:
+            symbol, suggestions = result
+            with self.lock:
+                self.current_symbol = symbol
+                self.word1, self.word2, self.word3, self.word4 = suggestions
+
+    def generate_frames(self):
+        while True:
+            frame = self.process_frame()
+            if frame is not None:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                frame = buffer.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    def update_sentence(self, action_num):
+        """Update sentence based on suggestion selection"""
+        with self.lock:
+            idx_space = self.str.rfind(" ")
+            idx_word = self.str.find(self.word, idx_space)
+            
+            # Select the appropriate suggestion
+            suggestion = getattr(self, f'word{action_num}')
+            
+            # Update the sentence
+            self.str = self.str[:idx_word] + suggestion.upper()
+            
+            return self.str
+
+    def speak_text(self):
+        """Speak the current sentence"""
+        self.speak_engine.say(self.str)
+        self.speak_engine.runAndWait()
+
+    def clear_text(self):
+        """Clear all text and suggestions"""
+        with self.lock:
+            self.str = " "
+            self.word = " "
+            self.word1 = self.word2 = self.word3 = self.word4 = " "
+
+# Initialize converter
+converter = SignLanguageConverter()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(converter.generate_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/get_current_data')
+def get_current_data():
+    with converter.lock:
+        return jsonify({
+            'current_symbol': converter.current_symbol,
+            'sentence': converter.str,
+            'suggestions': [converter.word1, converter.word2, 
+                           converter.word3, converter.word4]
+        })
+
+@app.route('/action/<int:action_num>', methods=['POST'])
+def handle_action(action_num):
+    if 1 <= action_num <= 4:
+        sentence = converter.update_sentence(action_num)
+        return jsonify({'status': 'success', 'sentence': sentence})
+    return jsonify({'status': 'error', 'message': 'Invalid action number'})
+
+@app.route('/speak', methods=['POST'])
+def speak():
+    threading.Thread(target=converter.speak_text, daemon=True).start()
+    return jsonify({'status': 'success'})
+
+@app.route('/clear', methods=['POST'])
+def clear():
+    converter.clear_text()
+    return jsonify({'status': 'success'})
+
+if __name__ == '__main__':
+    app.run(debug=True, threaded=True)
