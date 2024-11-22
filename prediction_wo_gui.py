@@ -1,13 +1,16 @@
 import math
 import cv2
+
+
 from cvzone.HandTrackingModule import HandDetector
 import numpy as np
 from keras.models import load_model
 import traceback
-
+print(cv2.__version__)
 model = load_model('/cnn8grps_rad1_model.h5')
 white = np.ones((400, 400), np.uint8) * 255
-cv2.imwrite("C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg", white)
+# cv2.imwrite("C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg", white)
+cv2.imwrite(r"C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg", white)
 capture = cv2.VideoCapture(0)
 
 hd = HandDetector(maxHands=1)
@@ -43,7 +46,8 @@ while True:
             hand = hands[0]
             x, y, w, h = hand['bbox']
             image = frame[y - offset:y + h + offset, x - offset:x + w + offset]
-            white = cv2.imread("C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg")
+            # white = cv2.imread("C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg")
+            cv2.imwrite(r"C:\Users\Abhishek\Desktop\Mini-project\Second\New\white.jpg", white)
             # img_final=img_final1=img_final2=0
             handz = hd2.findHands(image, draw=False, flipType=True)
             if handz:
